@@ -1,32 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import mercadopago from 'mercadopago';
-
-interface MercadoPagoResponse<T> {
-  body: T;
-}
-
-interface PreferenceResponse {
-  id: string;
-  init_point: string;
-}
-
-interface PaymentResponse {
-  status: string;
-}
+import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
+import { PreferenceRequest } from 'mercadopago/dist/clients/preference/commonTypes';
 
 @Injectable()
 export class PaymentsService {
+  private client: MercadoPagoConfig;
+  private preference: Preference;
+  private payment: Payment;
+
   constructor(private configService: ConfigService) {
     const accessToken = this.configService.get<string>(
       'MERCADOPAGO_ACCESS_TOKEN',
     );
+
     if (!accessToken) {
       throw new Error('MERCADOPAGO_ACCESS_TOKEN is not defined');
     }
-    mercadopago.configure({
-      access_token: accessToken,
-    });
+
+    this.client = new MercadoPagoConfig({ accessToken });
+    this.preference = new Preference(this.client);
+    this.payment = new Payment(this.client);
   }
 
   async createPaymentPreference(data: {
@@ -36,9 +30,22 @@ export class PaymentsService {
     quantity: number;
   }) {
     try {
-      const preference = {
+      const baseUrlFront = this.configService.get<string>('BASE_URL_FRONT');
+      const baseUrlBack = this.configService.get<string>('BASE_URL_BACK');
+
+      if (!baseUrlFront || !baseUrlBack) {
+        throw new Error('BASE_URL_FRONT and BASE_URL_BACK must be defined');
+      }
+
+      const successUrl = `${baseUrlFront}/eventos/${data.eventId}/success`;
+      const failureUrl = `${baseUrlFront}/eventos/${data.eventId}/failure`;
+      const pendingUrl = `${baseUrlFront}/eventos/${data.eventId}/pending`;
+      const webhookUrl = `${baseUrlBack}/api/payments/webhook`;
+
+      const preference: PreferenceRequest = {
         items: [
           {
+            id: data.eventId,
             title: data.eventName,
             unit_price: data.price,
             quantity: data.quantity,
@@ -46,20 +53,21 @@ export class PaymentsService {
           },
         ],
         back_urls: {
-          success: `${this.configService.get('BASE_URL')}/eventos/${data.eventId}/success`,
-          failure: `${this.configService.get('BASE_URL')}/eventos/${data.eventId}/failure`,
-          pending: `${this.configService.get('BASE_URL')}/eventos/${data.eventId}/pending`,
+          success: successUrl,
+          failure: failureUrl,
+          pending: pendingUrl,
         },
-        notification_url: `${this.configService.get('BASE_URL')}/api/payments/webhook`,
+        notification_url: webhookUrl,
         auto_return: 'approved',
       };
 
-      const response = (await mercadopago.preferences.create(
-        preference,
-      )) as MercadoPagoResponse<PreferenceResponse>;
+      const response = await this.preference.create({
+        body: preference,
+      });
+
       return {
-        preferenceId: response.body.id,
-        initPoint: response.body.init_point,
+        preferenceId: response.id,
+        initPoint: response.init_point,
       };
     } catch (error) {
       console.error('Error creating payment preference:', error);
@@ -70,10 +78,8 @@ export class PaymentsService {
   async handleWebhook(data: { type: string; data: { id: string } }) {
     try {
       if (data.type === 'payment') {
-        const payment = (await mercadopago.payment.findById(
-          data.data.id,
-        )) as MercadoPagoResponse<PaymentResponse>;
-        console.log('Payment status:', payment.body.status);
+        const payment = await this.payment.get({ id: data.data.id });
+        console.log('Payment status:', payment.status);
       }
     } catch (error) {
       console.error('Error handling webhook:', error);
