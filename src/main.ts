@@ -6,7 +6,7 @@ async function bootstrap() {
 
   // Habilitar CORS
   app.enableCors({
-    origin: 'http://localhost:3000', // URL del frontend
+    origin: process.env.BASE_URL_FRONT, // URL del frontend
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   });
