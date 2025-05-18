@@ -8,9 +8,9 @@ import {
 import { PaymentsService } from './payments.service';
 
 interface CreatePaymentPreferenceDto {
-  eventId: string;
-  eventName: string;
-  price: number;
+  eventId: number;
+  buyerEmail: string;
+  buyerName: string;
   quantity: number;
 }
 

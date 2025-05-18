@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { PreferenceRequest } from 'mercadopago/dist/clients/preference/commonTypes';
+import { EventsService } from '../events/events.service';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class PaymentsService {
@@ -9,7 +11,10 @@ export class PaymentsService {
   private preference: Preference;
   private payment: Payment;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private eventsService: EventsService,
+  ) {
     const accessToken = this.configService.get<string>(
       'MERCADOPAGO_ACCESS_TOKEN',
     );
@@ -24,9 +29,9 @@ export class PaymentsService {
   }
 
   async createPaymentPreference(data: {
-    eventId: string;
-    eventName: string;
-    price: number;
+    eventId: number;
+    buyerEmail: string;
+    buyerName: string;
     quantity: number;
   }) {
     try {
@@ -37,6 +42,12 @@ export class PaymentsService {
         throw new Error('BASE_URL_FRONT and BASE_URL_BACK must be defined');
       }
 
+      // Fetch event information
+      const event = await this.eventsService.getEventById(data.eventId);
+      if (!event) {
+        throw new NotFoundException(`Event with ID ${data.eventId} not found`);
+      }
+
       const successUrl = `${baseUrlFront}/eventos/${data.eventId}/success`;
       const failureUrl = `${baseUrlFront}/eventos/${data.eventId}/failure`;
       const pendingUrl = `${baseUrlFront}/eventos/${data.eventId}/pending`;
@@ -45,9 +56,9 @@ export class PaymentsService {
       const preference: PreferenceRequest = {
         items: [
           {
-            id: data.eventId,
-            title: data.eventName,
-            unit_price: data.price,
+            id: event.id.toString(),
+            title: event.name,
+            unit_price: event.price,
             quantity: data.quantity,
             currency_id: 'ARS',
           },
@@ -59,6 +70,10 @@ export class PaymentsService {
         },
         notification_url: webhookUrl,
         auto_return: 'approved',
+        payer: {
+          name: data.buyerName,
+          email: data.buyerEmail,
+        },
       };
 
       const response = await this.preference.create({
