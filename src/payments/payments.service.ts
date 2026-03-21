@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { EventsService } from '../events/events.service';
 import { UsersService } from '../users/users.service';
+import { TicketsService } from '../tickets/tickets.service';
+import { EmailService } from '../email/email.service';
 import { Purchase } from '../entities/purchase.entity';
 
 @Injectable()
@@ -20,6 +22,8 @@ export class PaymentsService {
     private configService: ConfigService,
     private eventsService: EventsService,
     private usersService: UsersService,
+    private ticketsService: TicketsService,
+    private emailService: EmailService,
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
   ) {
@@ -160,6 +164,7 @@ export class PaymentsService {
 
       const purchase = await this.purchaseRepository.findOne({
         where: { id: purchaseId },
+        relations: ['event'],
       });
       if (!purchase) return;
 
@@ -175,6 +180,7 @@ export class PaymentsService {
         charged_back: 'refunded',
       };
 
+      const previousStatus = purchase.payment_status;
       const newStatus =
         statusMap[payment.status || ''] || purchase.payment_status;
 
@@ -182,6 +188,10 @@ export class PaymentsService {
       purchase.mp_payment_id = payment.id?.toString() || '';
 
       await this.purchaseRepository.save(purchase);
+
+      if (newStatus === 'approved' && previousStatus !== 'approved') {
+        await this.generateTicketsAndNotify(purchase);
+      }
 
       console.log(
         `Purchase ${purchaseId} actualizada: ${newStatus} (MP payment: ${payment.id})`,
@@ -191,10 +201,59 @@ export class PaymentsService {
     }
   }
 
+  private async generateTicketsAndNotify(purchase: Purchase): Promise<void> {
+    try {
+      const event = purchase.event || await this.eventsService.getEventById(purchase.event_id);
+      if (!event) {
+        console.error(`Evento ${purchase.event_id} no encontrado para generar tickets`);
+        return;
+      }
+
+      const tickets = await this.ticketsService.generateTicketsForPurchase(purchase);
+
+      console.log(
+        `${tickets.length} ticket(s) generados para purchase ${purchase.id}`,
+      );
+
+      await this.emailService.sendTicketEmail(
+        purchase.buyer_email,
+        purchase.buyer_name,
+        event,
+        tickets,
+      );
+    } catch (error) {
+      console.error(`Error generando tickets/email para purchase ${purchase.id}:`, error);
+    }
+  }
+
+  async simulateApproved(purchaseId: number) {
+    const purchase = await this.purchaseRepository.findOne({
+      where: { id: purchaseId },
+      relations: ['event'],
+    });
+    if (!purchase) {
+      throw new NotFoundException(`Compra ${purchaseId} no encontrada`);
+    }
+
+    purchase.payment_status = 'approved';
+    await this.purchaseRepository.save(purchase);
+    await this.generateTicketsAndNotify(purchase);
+
+    const updatedPurchase = await this.purchaseRepository.findOne({
+      where: { id: purchaseId },
+      relations: ['event', 'tickets'],
+    });
+
+    return {
+      message: `Pago simulado como aprobado, ${updatedPurchase?.tickets?.length || 0} ticket(s) generados`,
+      purchase: updatedPurchase,
+    };
+  }
+
   async getPurchaseById(id: number): Promise<Purchase> {
     const purchase = await this.purchaseRepository.findOne({
       where: { id },
-      relations: ['event'],
+      relations: ['event', 'tickets'],
     });
     if (!purchase) {
       throw new NotFoundException(`Compra con ID ${id} no encontrada`);

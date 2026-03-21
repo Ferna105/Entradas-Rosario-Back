@@ -15,7 +15,7 @@ CREATE TABLE public.users (
     mp_user_id text,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     type public."User type" DEFAULT 'buyer'::public."User type" NOT NULL,
-    CONSTRAINT users_type_check CHECK (((type)::text = ANY (ARRAY[('buyer'::character varying)::text, ('seller'::character varying)::text, ('admin'::character varying)::text])))
+    CONSTRAINT users_type_check CHECK (((type)::text = ANY (ARRAY[('buyer'::character varying)::text, ('seller'::character varying)::text, ('admin'::character varying)::text, ('scanner'::character varying)::text])))
 );
 
 CREATE SEQUENCE public.users_id_seq
@@ -65,6 +65,12 @@ ALTER TABLE ONLY public.purchases ALTER COLUMN id SET DEFAULT nextval('public.pu
 CREATE TABLE public.tickets (
     id integer NOT NULL,
     purchase_id integer,
+    event_id integer,
+    qr_data text NOT NULL,
+    qr_code text,
+    status character varying(20) NOT NULL DEFAULT 'valid',
+    scanned_at timestamp without time zone,
+    scanned_by integer,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -94,6 +100,18 @@ COPY public.purchases (id, event_id, buyer_name, buyer_email, quantity, payment_
 COPY public.tickets (id, purchase_id, created_at) FROM stdin;
 \.
 
+CREATE TABLE public.event_scanners (
+    id integer NOT NULL,
+    event_id integer NOT NULL,
+    scanner_id integer NOT NULL,
+    assigned_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE SEQUENCE public.event_scanners_id_seq
+    AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
+ALTER SEQUENCE public.event_scanners_id_seq OWNED BY public.event_scanners.id;
+ALTER TABLE ONLY public.event_scanners ALTER COLUMN id SET DEFAULT nextval('public.event_scanners_id_seq'::regclass);
+
 -- Sequences
 SELECT pg_catalog.setval('public.events_id_seq', 15, true);
 SELECT pg_catalog.setval('public.purchases_id_seq', 1, false);
@@ -110,4 +128,14 @@ ALTER TABLE ONLY public.users ADD CONSTRAINT users_email_key UNIQUE (email);
 -- Foreign keys
 ALTER TABLE ONLY public.events ADD CONSTRAINT events_seller_id_fkey FOREIGN KEY (seller_id) REFERENCES public.users(id);
 ALTER TABLE ONLY public.purchases ADD CONSTRAINT purchases_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id);
+ALTER TABLE ONLY public.purchases ADD CONSTRAINT purchases_payment_status_check
+  CHECK (payment_status::text = ANY (ARRAY['pending', 'approved', 'rejected', 'refunded', 'paid', 'failed']::text[]));
+
 ALTER TABLE ONLY public.tickets ADD CONSTRAINT tickets_purchase_id_fkey FOREIGN KEY (purchase_id) REFERENCES public.purchases(id);
+ALTER TABLE ONLY public.tickets ADD CONSTRAINT tickets_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id);
+ALTER TABLE ONLY public.tickets ADD CONSTRAINT tickets_scanned_by_fkey FOREIGN KEY (scanned_by) REFERENCES public.users(id);
+
+ALTER TABLE ONLY public.event_scanners ADD CONSTRAINT event_scanners_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.event_scanners ADD CONSTRAINT event_scanners_event_scanner_unique UNIQUE (event_id, scanner_id);
+ALTER TABLE ONLY public.event_scanners ADD CONSTRAINT event_scanners_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.event_scanners ADD CONSTRAINT event_scanners_scanner_id_fkey FOREIGN KEY (scanner_id) REFERENCES public.users(id) ON DELETE CASCADE;

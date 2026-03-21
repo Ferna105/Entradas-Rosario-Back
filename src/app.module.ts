@@ -10,6 +10,10 @@ import { EventsModule } from './events/events.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MercadoPagoModule } from './mercadopago/mercadopago.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { EmailModule } from './email/email.module';
+import { ScannerModule } from './scanner/scanner.module';
+import { EventScanner } from './entities/event-scanner.entity';
 
 @Module({
   imports: [
@@ -24,7 +28,7 @@ import { MercadoPagoModule } from './mercadopago/mercadopago.module';
       username: process.env.DB_USER || '',
       password: process.env.DB_PASS || '',
       database: process.env.DB_NAME || '',
-      entities: [User, Event, Purchase, Ticket],
+      entities: [User, Event, Purchase, Ticket, EventScanner],
       synchronize: false,
       autoLoadEntities: true,
     }),
@@ -33,6 +37,9 @@ import { MercadoPagoModule } from './mercadopago/mercadopago.module';
     MercadoPagoModule,
     PaymentsModule,
     EventsModule,
+    TicketsModule,
+    EmailModule,
+    ScannerModule,
   ],
 })
 export class AppModule {}

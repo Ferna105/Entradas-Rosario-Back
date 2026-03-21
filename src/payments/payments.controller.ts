@@ -45,4 +45,9 @@ export class PaymentsController {
   async getPurchase(@Param('id', ParseIntPipe) id: number) {
     return this.paymentsService.getPurchaseById(id);
   }
+
+  @Post('simulate-approved/:id')
+  async simulateApproved(@Param('id', ParseIntPipe) id: number) {
+    return this.paymentsService.simulateApproved(id);
+  }
 }
