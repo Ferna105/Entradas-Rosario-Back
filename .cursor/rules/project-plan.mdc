@@ -1,0 +1,165 @@
+---
+description: Plan de desarrollo MVP del sistema Entradas Rosario
+globs:
+alwaysApply: false
+---
+
+# Plan de Desarrollo MVP — Entradas Rosario
+
+## Visión General
+
+Plataforma de venta de entradas online para eventos musicales con:
+- Registro/login de usuarios (músicos, organizadores, compradores, scanners)
+- Creación de eventos por músicos/organizadores
+- Split payment via MercadoPago Marketplace
+- Generación de QR por entrada enviado por email
+- Sistema de escaneo en puerta
+
+## Modelo de Datos Objetivo
+
+```
+users
+├── id, name, email, password_hash, type (buyer|seller|admin|scanner)
+├── mp_access_token, mp_refresh_token, mp_user_id   ← OAuth MP
+└── created_at
+
+events
+├── id, seller_id (FK users), name, description, location
+├── event_date, price, capacity, image
+├── marketplace_fee_percent   ← % que se lleva la plataforma
+├── status (draft|published|cancelled|finished)
+└── created_at
+
+scanner_assignments
+├── id, event_id (FK events), scanner_id (FK users)
+└── assigned_at
+
+purchases
+├── id, event_id (FK events)
+├── buyer_id (FK users, nullable), buyer_name, buyer_email
+├── quantity, total_amount
+├── payment_status (pending|approved|rejected|refunded)
+├── mp_payment_id, mp_preference_id
+└── created_at
+
+tickets
+├── id, purchase_id (FK purchases)
+├── qr_code (UUID único), qr_status (valid|used|cancelled)
+├── scanned_at, scanned_by (FK users, nullable)
+└── created_at
+```
+
+## Fases de Desarrollo
+
+### FASE 1 — Autenticación y Gestión de Usuarios ✅ EN PROGRESO
+**Estimación: 3-4 días**
+
+Backend:
+1. Instalar: @nestjs/passport, passport-jwt, passport-local, bcrypt, @nestjs/jwt, class-validator, class-transformer
+2. Crear AuthModule: POST /auth/register, POST /auth/login, POST /auth/refresh, GET /auth/me
+3. Crear UsersModule con CRUD básico
+4. Implementar JwtAuthGuard y RolesGuard
+5. Migrar password_hash a bcrypt
+6. Agregar class-validator para validación de DTOs
+
+Frontend:
+7. Crear páginas /login y /registro
+8. Implementar contexto de autenticación (React Context + JWT)
+9. Crear componente ProtectedRoute
+10. Actualizar Header con estado de sesión
+
+### FASE 2 — CRUD de Eventos
+**Estimación: 2-3 días**
+
+Backend:
+1. Agregar columnas status y marketplace_fee_percent a events
+2. POST /events, PUT /events/:id, DELETE /events/:id, GET /events/my-events
+3. Validación: solo sellers pueden crear eventos
+4. Agregar relaciones TypeORM en todas las entities
+
+Frontend:
+5. Página /eventos/crear
+6. Página /eventos/editar/[id]
+7. Página /dashboard del seller
+8. Upload de imagen del evento
+
+### FASE 3 — MercadoPago Marketplace (Split Payment)
+**Estimación: 4-5 días**
+
+Backend:
+1. Crear MercadoPagoModule: GET /mp/auth-url, GET /mp/callback, POST /mp/disconnect
+2. Modificar createPaymentPreference: usar access_token del seller, agregar marketplace_fee
+3. Implementar handleWebhook completo: verificar firma, actualizar purchase, generar tickets
+4. Refresh automático de tokens MP
+5. Validar cuenta MP vinculada antes de publicar evento
+
+Frontend:
+6. Sección en dashboard para vincular cuenta MercadoPago
+7. Páginas /compra/exito y /compra/error
+
+### FASE 4 — Generación de QR y Envío por Email
+**Estimación: 2-3 días**
+
+Backend:
+1. Al confirmar pago: crear N tickets con UUID, firmar con HMAC-SHA256
+2. Servicio de email con template HTML + QR embebido
+3. GET /tickets/my-tickets, GET /tickets/:qr_code/validate
+
+Frontend:
+4. Página /compra/exito con QR codes
+5. Página /mis-entradas
+
+### FASE 5 — Sistema de Escaneo en Puerta
+**Estimación: 3-4 días**
+
+Backend:
+1. ScannersModule: asignar/remover scanners a eventos
+2. POST /tickets/scan: verificar HMAC, verificar asignación, actualizar estado
+3. GET /events/:id/scan-stats
+
+Frontend:
+4. Página /scanner con cámara (html5-qrcode)
+5. Feedback visual verde/rojo + sonido
+6. Contador en vivo de entradas escaneadas
+
+### FASE 6 — Ajustes Finales y Pulido
+**Estimación: 2-3 días**
+
+1. Páginas faltantes (/contacto, /nosotros, etc.)
+2. Unificar marca, formatDate/formatTime, formato de precios
+3. Migraciones TypeORM
+4. Rate limiting, logging, health check
+5. CORS, Helmet, sanitización
+
+## Variables de Entorno Necesarias
+
+### Backend (.env)
+```
+# Existentes
+MERCADOPAGO_ACCESS_TOKEN=...
+BASE_URL_FRONT=http://localhost:3000
+BASE_URL_BACK=http://localhost:3001
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=entradas_rosario
+
+# Fase 1 - Auth
+JWT_SECRET=...
+JWT_EXPIRATION=15m
+JWT_REFRESH_EXPIRATION=7d
+
+# Fase 3 - MercadoPago Marketplace
+MP_APP_ID=...
+MP_CLIENT_SECRET=...
+MP_REDIRECT_URI=http://localhost:3001/mp/callback
+MP_PLATFORM_FEE_PERCENT=10
+
+# Fase 4 - QR + Email
+QR_HMAC_SECRET=...
+MAIL_HOST=smtp.resend.com
+MAIL_USER=resend
+MAIL_PASS=re_...
+MAIL_FROM=entradas@tudominio.com
+```

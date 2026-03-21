@@ -7,6 +7,8 @@ import { Event } from './entities/event.entity';
 import { Purchase } from './entities/purchase.entity';
 import { Ticket } from './entities/ticket.entity';
 import { EventsModule } from './events/events.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { EventsModule } from './events/events.module';
       synchronize: false,
       autoLoadEntities: true,
     }),
+    AuthModule,
+    UsersModule,
     PaymentsModule,
     EventsModule,
   ],

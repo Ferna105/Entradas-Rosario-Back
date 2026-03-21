@@ -3,19 +3,30 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
+import { Event } from './event.entity';
+
+export enum UserType {
+  BUYER = 'buyer',
+  SELLER = 'seller',
+  ADMIN = 'admin',
+  SCANNER = 'scanner',
+}
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', length: 100 })
   name: string;
 
-  @Column({ type: 'varchar', unique: true })
+  @Column({ type: 'varchar', length: 100, unique: true })
   email: string;
 
+  @Exclude()
   @Column({ type: 'text' })
   password_hash: string;
 
@@ -25,6 +36,9 @@ export class User {
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 
-  @Column({ type: 'varchar' })
-  type: string;
+  @Column({ type: 'varchar', default: UserType.BUYER })
+  type: UserType;
+
+  @OneToMany(() => Event, (event) => event.seller)
+  events: Event[];
 }

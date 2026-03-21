@@ -3,29 +3,38 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
+import { User } from './user.entity';
+import { Purchase } from './purchase.entity';
 
 @Entity('events')
 export class Event {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true })
   seller_id: number;
 
-  @Column({ type: 'varchar' })
+  @ManyToOne(() => User, (user) => user.events)
+  @JoinColumn({ name: 'seller_id' })
+  seller: User;
+
+  @Column({ type: 'varchar', length: 200 })
   name: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   location: string;
 
   @Column({ type: 'timestamp' })
   event_date: Date;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: number;
 
   @Column({ type: 'int' })
@@ -36,4 +45,7 @@ export class Event {
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
+
+  @OneToMany(() => Purchase, (purchase) => purchase.event)
+  purchases: Purchase[];
 }
