@@ -9,6 +9,7 @@ import { Ticket } from './entities/ticket.entity';
 import { EventsModule } from './events/events.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { MercadoPagoModule } from './mercadopago/mercadopago.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UsersModule } from './users/users.module';
     }),
     AuthModule,
     UsersModule,
+    MercadoPagoModule,
     PaymentsModule,
     EventsModule,
   ],

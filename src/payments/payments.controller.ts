@@ -1,7 +1,10 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Param,
+  ParseIntPipe,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
@@ -14,13 +17,6 @@ interface CreatePaymentPreferenceDto {
   quantity: number;
 }
 
-interface WebhookData {
-  type: string;
-  data: {
-    id: string;
-  };
-}
-
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
@@ -29,24 +25,24 @@ export class PaymentsController {
   async createPaymentPreference(@Body() data: CreatePaymentPreferenceDto) {
     try {
       return await this.paymentsService.createPaymentPreference(data);
-    } catch {
+    } catch (error) {
+      console.error('Error en create-preference:', error);
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
-        'Error creating payment preference',
+        'Error al crear la preferencia de pago',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   @Post('webhook')
-  async handleWebhook(@Body() data: WebhookData) {
-    try {
-      await this.paymentsService.handleWebhook(data);
-      return { status: 'ok' };
-    } catch {
-      throw new HttpException(
-        'Error processing webhook',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  async handleWebhook(@Body() data: any) {
+    await this.paymentsService.handleWebhook(data);
+    return { status: 'ok' };
+  }
+
+  @Get('purchase/:id')
+  async getPurchase(@Param('id', ParseIntPipe) id: number) {
+    return this.paymentsService.getPurchaseById(id);
   }
 }

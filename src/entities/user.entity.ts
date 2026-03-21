@@ -30,8 +30,16 @@ export class User {
   @Column({ type: 'text' })
   password_hash: string;
 
+  @Exclude()
   @Column({ type: 'text', nullable: true })
   mp_access_token: string;
+
+  @Exclude()
+  @Column({ type: 'text', nullable: true })
+  mp_refresh_token: string;
+
+  @Column({ type: 'text', nullable: true })
+  mp_user_id: string;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
@@ -41,4 +49,8 @@ export class User {
 
   @OneToMany(() => Event, (event) => event.seller)
   events: Event[];
+
+  get isMpConnected(): boolean {
+    return !!this.mp_access_token;
+  }
 }

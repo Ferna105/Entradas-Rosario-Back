@@ -51,7 +51,7 @@ tickets
 
 ## Fases de Desarrollo
 
-### FASE 1 — Autenticación y Gestión de Usuarios ✅ EN PROGRESO
+### FASE 1 — Autenticación y Gestión de Usuarios ✅ COMPLETADA
 **Estimación: 3-4 días**
 
 Backend:
@@ -68,7 +68,7 @@ Frontend:
 9. Crear componente ProtectedRoute
 10. Actualizar Header con estado de sesión
 
-### FASE 2 — CRUD de Eventos
+### FASE 2 — CRUD de Eventos ✅ COMPLETADA
 **Estimación: 2-3 días**
 
 Backend:
@@ -83,7 +83,7 @@ Frontend:
 7. Página /dashboard del seller
 8. Upload de imagen del evento
 
-### FASE 3 — MercadoPago Marketplace (Split Payment)
+### FASE 3 — MercadoPago Marketplace (Split Payment) ✅ COMPLETADA
 **Estimación: 4-5 días**
 
 Backend:

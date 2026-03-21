@@ -47,4 +47,36 @@ export class UsersService {
   async validatePassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.password_hash);
   }
+
+  async saveMpCredentials(
+    userId: number,
+    credentials: {
+      accessToken: string;
+      refreshToken: string;
+      userId: string;
+    },
+  ): Promise<User> {
+    await this.userRepository.update(userId, {
+      mp_access_token: credentials.accessToken,
+      mp_refresh_token: credentials.refreshToken,
+      mp_user_id: credentials.userId,
+    });
+    return this.findById(userId) as Promise<User>;
+  }
+
+  async clearMpCredentials(userId: number): Promise<void> {
+    await this.userRepository.update(userId, {
+      mp_access_token: null as any,
+      mp_refresh_token: null as any,
+      mp_user_id: null as any,
+    });
+  }
+
+  async getMpAccessToken(userId: number): Promise<string | null> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'mp_access_token'],
+    });
+    return user?.mp_access_token || null;
+  }
 }

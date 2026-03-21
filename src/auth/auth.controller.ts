@@ -41,6 +41,7 @@ export class AuthController {
       name: user.name,
       email: user.email,
       type: user.type,
+      mpConnected: !!user.mp_access_token,
     };
   }
 }

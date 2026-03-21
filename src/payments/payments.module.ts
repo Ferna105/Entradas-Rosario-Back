@@ -1,11 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { EventsModule } from '../events/events.module';
+import { UsersModule } from '../users/users.module';
+import { Purchase } from '../entities/purchase.entity';
 
 @Module({
-  imports: [ConfigModule, EventsModule],
+  imports: [
+    ConfigModule,
+    EventsModule,
+    UsersModule,
+    TypeOrmModule.forFeature([Purchase]),
+  ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
   exports: [PaymentsService],

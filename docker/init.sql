@@ -11,6 +11,8 @@ CREATE TABLE public.users (
     email character varying(100) NOT NULL,
     password_hash text NOT NULL,
     mp_access_token text,
+    mp_refresh_token text,
+    mp_user_id text,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     type public."User type" DEFAULT 'buyer'::public."User type" NOT NULL,
     CONSTRAINT users_type_check CHECK (((type)::text = ANY (ARRAY[('buyer'::character varying)::text, ('seller'::character varying)::text, ('admin'::character varying)::text])))
@@ -31,7 +33,9 @@ CREATE TABLE public.events (
     price numeric(10,2) NOT NULL,
     capacity integer NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    image character varying
+    image character varying,
+    status character varying(20) NOT NULL DEFAULT 'published',
+    marketplace_fee_percent numeric(5,2) NOT NULL DEFAULT 10.00
 );
 
 CREATE SEQUENCE public.events_id_seq
@@ -42,12 +46,15 @@ ALTER TABLE ONLY public.events ALTER COLUMN id SET DEFAULT nextval('public.event
 CREATE TABLE public.purchases (
     id integer NOT NULL,
     event_id integer,
+    buyer_id integer,
     buyer_name character varying(100),
     buyer_email character varying(100),
     quantity integer NOT NULL,
-    payment_status character varying(10) NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT purchases_payment_status_check CHECK (((payment_status)::text = ANY (ARRAY[('pending'::character varying)::text, ('paid'::character varying)::text, ('failed'::character varying)::text])))
+    total_amount numeric(10,2),
+    payment_status character varying(20) NOT NULL DEFAULT 'pending',
+    mp_payment_id text,
+    mp_preference_id text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE SEQUENCE public.purchases_id_seq

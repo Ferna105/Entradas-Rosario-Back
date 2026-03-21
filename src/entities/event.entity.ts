@@ -10,6 +10,13 @@ import {
 import { User } from './user.entity';
 import { Purchase } from './purchase.entity';
 
+export enum EventStatus {
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
+  CANCELLED = 'cancelled',
+  FINISHED = 'finished',
+}
+
 @Entity('events')
 export class Event {
   @PrimaryGeneratedColumn()
@@ -42,6 +49,21 @@ export class Event {
 
   @Column({ type: 'varchar', nullable: true })
   image: string;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: EventStatus.PUBLISHED,
+  })
+  status: EventStatus;
+
+  @Column({
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    default: 10.0,
+  })
+  marketplace_fee_percent: number;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

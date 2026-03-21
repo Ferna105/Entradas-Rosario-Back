@@ -54,6 +54,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         type: user.type,
+        mpConnected: !!user.mp_access_token,
       },
       accessToken: this.jwtService.sign(payload),
       refreshToken: this.jwtService.sign(payload, {
