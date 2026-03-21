@@ -16,7 +16,6 @@ interface OAuthTokenResponse {
 export class MercadoPagoService {
   private appId: string;
   private clientSecret: string;
-  private redirectUri: string;
 
   constructor(
     private configService: ConfigService,
@@ -24,23 +23,53 @@ export class MercadoPagoService {
   ) {
     this.appId = this.configService.get<string>('MP_APP_ID', '');
     this.clientSecret = this.configService.get<string>('MP_CLIENT_SECRET', '');
-    this.redirectUri = this.configService.get<string>('MP_REDIRECT_URI', '');
+  }
+
+  /** Debe coincidir byte a byte con la Redirect URL del panel de Mercado Pago. */
+  getRedirectUri(): string {
+    const explicit = this.configService.get<string>('MP_REDIRECT_URI', '')?.trim();
+    if (explicit) {
+      return explicit.replace(/\/+$/, '');
+    }
+    const baseBack = this.configService
+      .get<string>('BASE_URL_BACK', '')
+      ?.trim()
+      .replace(/\/+$/, '');
+    if (baseBack) {
+      return `${baseBack}/mp/callback`;
+    }
+    return '';
   }
 
   getAuthUrl(sellerId: number): string {
-    const state = Buffer.from(JSON.stringify({ sellerId })).toString('base64');
+    const redirectUri = this.getRedirectUri();
+    if (!this.appId || !redirectUri) {
+      throw new Error(
+        'MercadoPago OAuth: configurá MP_APP_ID y MP_REDIRECT_URI (o BASE_URL_BACK para derivar .../mp/callback)',
+      );
+    }
+    const state = Buffer.from(JSON.stringify({ sellerId })).toString('base64url');
     return (
       `https://auth.mercadopago.com.ar/authorization?` +
-      `client_id=${this.appId}` +
+      `client_id=${encodeURIComponent(this.appId)}` +
       `&response_type=code` +
       `&platform_id=mp` +
-      `&state=${state}` +
-      `&redirect_uri=${encodeURIComponent(this.redirectUri)}`
+      `&state=${encodeURIComponent(state)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}`
     );
   }
 
+  private parseState(state: string): { sellerId: number } {
+    try {
+      return JSON.parse(Buffer.from(state, 'base64url').toString());
+    } catch {
+      return JSON.parse(Buffer.from(state, 'base64').toString());
+    }
+  }
+
   async handleOAuthCallback(code: string, state: string): Promise<{ sellerId: number }> {
-    const { sellerId } = JSON.parse(Buffer.from(state, 'base64').toString());
+    const { sellerId } = this.parseState(state);
+    const redirectUri = this.getRedirectUri();
 
     const tokenResponse = await fetch('https://api.mercadopago.com/oauth/token', {
       method: 'POST',
@@ -50,7 +79,7 @@ export class MercadoPagoService {
         client_id: this.appId,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: this.redirectUri,
+        redirect_uri: redirectUri,
       }),
     });
 

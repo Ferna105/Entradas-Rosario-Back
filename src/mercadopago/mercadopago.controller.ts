@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -26,8 +27,13 @@ export class MercadoPagoController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.SELLER, UserType.ADMIN)
   getAuthUrl(@CurrentUser() user: User) {
-    const url = this.mpService.getAuthUrl(user.id);
-    return { url };
+    try {
+      const url = this.mpService.getAuthUrl(user.id);
+      return { url };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al armar URL de MercadoPago';
+      throw new BadRequestException(msg);
+    }
   }
 
   @Get('callback')
