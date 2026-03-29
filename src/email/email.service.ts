@@ -197,4 +197,76 @@ export class EmailService {
       console.error(`Error enviando invitación de escaneador a ${toEmail}:`, error);
     }
   }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async sendContactNotification(
+    inbox: string,
+    payload: { name: string; email: string; message: string; subject?: string },
+  ): Promise<void> {
+    const fromEmail = this.configService.get<string>(
+      'SMTP_FROM',
+      this.configService.get<string>('SMTP_USER', ''),
+    );
+
+    if (!fromEmail) {
+      throw new Error('SMTP no configurado');
+    }
+
+    const safeName = this.escapeHtml(payload.name);
+    const safeEmail = this.escapeHtml(payload.email);
+    const safeMessage = this.escapeHtml(payload.message).replace(/\n/g, '<br/>');
+    const safeSubject = payload.subject
+      ? this.escapeHtml(payload.subject)
+      : 'Consulta desde el sitio web';
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 32px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 20px;">Nuevo mensaje de contacto</h1>
+        </div>
+        <div style="padding: 28px;">
+          <p style="color: #334155; font-size: 15px; margin: 0 0 8px 0;"><strong>Nombre:</strong> ${safeName}</p>
+          <p style="color: #334155; font-size: 15px; margin: 0 0 16px 0;"><strong>Email:</strong> <a href="mailto:${payload.email}">${safeEmail}</a></p>
+          ${payload.subject ? `<p style="color: #334155; font-size: 15px; margin: 0 0 16px 0;"><strong>Asunto:</strong> ${safeSubject}</p>` : ''}
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 16px;">
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0;"><strong>Mensaje</strong></p>
+            <p style="color: #334155; font-size: 15px; line-height: 1.6; margin: 0;">${safeMessage}</p>
+          </div>
+        </div>
+        <div style="background: #f1f5f9; padding: 16px; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">Entradas Rosario — formulario web</p>
+        </div>
+      </div>
+    </body>
+    </html>`;
+
+    const subjectLine = payload.subject
+      ? `[Contacto] ${payload.subject}`
+      : `[Contacto] Mensaje de ${payload.name}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Entradas Rosario" <${fromEmail}>`,
+        to: inbox,
+        replyTo: payload.email,
+        subject: subjectLine,
+        html,
+      });
+      console.log(`Mensaje de contacto enviado al inbox ${inbox}`);
+    } catch (error) {
+      console.error(`Error enviando mensaje de contacto a ${inbox}:`, error);
+      throw error;
+    }
+  }
 }

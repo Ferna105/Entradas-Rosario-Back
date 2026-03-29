@@ -9,6 +9,7 @@ import { MercadoPagoModule } from './mercadopago/mercadopago.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { EmailModule } from './email/email.module';
 import { ScannerModule } from './scanner/scanner.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ScannerModule } from './scanner/scanner.module';
     TicketsModule,
     EmailModule,
     ScannerModule,
+    ContactModule,
   ],
 })
 export class AppModule {}
