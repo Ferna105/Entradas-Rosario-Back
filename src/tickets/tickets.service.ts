@@ -27,6 +27,7 @@ export class TicketsService {
       const ticket = this.ticketRepository.create({
         purchase_id: purchase.id,
         event_id: purchase.event_id,
+        ticket_type_id: purchase.ticket_type_id,
         qr_data: qrData,
         qr_code: qrCodeBase64,
         status: TicketStatus.VALID,

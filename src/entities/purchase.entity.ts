@@ -10,6 +10,7 @@ import {
 import { Event } from './event.entity';
 import { Ticket } from './ticket.entity';
 import { User } from './user.entity';
+import { TicketType } from './ticket-type.entity';
 
 @Entity('purchases')
 export class Purchase {
@@ -22,6 +23,13 @@ export class Purchase {
   @ManyToOne(() => Event, (event) => event.purchases)
   @JoinColumn({ name: 'event_id' })
   event: Event;
+
+  @Column({ type: 'int' })
+  ticket_type_id: number;
+
+  @ManyToOne(() => TicketType, (tt) => tt.purchases)
+  @JoinColumn({ name: 'ticket_type_id' })
+  ticketType: TicketType;
 
   @Column({ type: 'int', nullable: true })
   buyer_id: number;

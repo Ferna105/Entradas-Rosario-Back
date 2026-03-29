@@ -12,6 +12,7 @@ import { PaymentsService } from './payments.service';
 
 interface CreatePaymentPreferenceDto {
   eventId: number;
+  ticketTypeId: number;
   buyerEmail: string;
   buyerName: string;
   quantity: number;

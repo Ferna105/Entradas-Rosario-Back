@@ -9,6 +9,7 @@ import {
 import { Purchase } from './purchase.entity';
 import { Event } from './event.entity';
 import { User } from './user.entity';
+import { TicketType } from './ticket-type.entity';
 
 export enum TicketStatus {
   VALID = 'valid',
@@ -34,6 +35,13 @@ export class Ticket {
   @ManyToOne(() => Event)
   @JoinColumn({ name: 'event_id' })
   event: Event;
+
+  @Column({ type: 'int' })
+  ticket_type_id: number;
+
+  @ManyToOne(() => TicketType)
+  @JoinColumn({ name: 'ticket_type_id' })
+  ticketType: TicketType;
 
   @Column({ type: 'text' })
   qr_data: string;

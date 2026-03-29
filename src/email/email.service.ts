@@ -37,6 +37,7 @@ export class EmailService {
     buyerName: string,
     event: Event,
     tickets: Ticket[],
+    ticketTypeName?: string,
   ): Promise<void> {
     const fromEmail = this.configService.get<string>('SMTP_FROM', this.configService.get<string>('SMTP_USER', ''));
 
@@ -83,6 +84,7 @@ export class EmailService {
           
           <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #6366f1;">
             <h2 style="color: #1e293b; margin: 0 0 8px 0; font-size: 20px;">${event.name}</h2>
+            ${ticketTypeName ? `<p style="color: #64748b; margin: 4px 0;">🎫 ${ticketTypeName}</p>` : ''}
             <p style="color: #64748b; margin: 4px 0;">📅 ${eventDate}</p>
             <p style="color: #64748b; margin: 4px 0;">📍 ${event.location || 'Lugar a confirmar'}</p>
           </div>

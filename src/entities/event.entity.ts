@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { Purchase } from './purchase.entity';
+import { TicketType } from './ticket-type.entity';
 
 export enum EventStatus {
   DRAFT = 'draft',
@@ -41,12 +42,6 @@ export class Event {
   @Column({ type: 'timestamp' })
   event_date: Date;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
-  price: number;
-
-  @Column({ type: 'int' })
-  capacity: number;
-
   @Column({ type: 'varchar', nullable: true })
   image: string;
 
@@ -70,4 +65,7 @@ export class Event {
 
   @OneToMany(() => Purchase, (purchase) => purchase.event)
   purchases: Purchase[];
+
+  @OneToMany(() => TicketType, (tt) => tt.event)
+  ticketTypes: TicketType[];
 }

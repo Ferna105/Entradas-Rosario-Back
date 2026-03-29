@@ -1,12 +1,14 @@
 import {
   IsNotEmpty,
   IsOptional,
-  IsNumber,
   IsDateString,
   IsUrl,
-  Min,
   MaxLength,
+  ValidateNested,
+  ArrayMinSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { TicketTypeItemDto } from './ticket-type-item.dto';
 
 export class CreateEventDto {
   @IsNotEmpty({ message: 'El nombre del evento es obligatorio' })
@@ -23,15 +25,12 @@ export class CreateEventDto {
   @IsDateString({}, { message: 'La fecha del evento no es válida' })
   event_date: string;
 
-  @IsNumber({}, { message: 'El precio debe ser un número' })
-  @Min(0, { message: 'El precio no puede ser negativo' })
-  price: number;
-
-  @IsNumber({}, { message: 'La capacidad debe ser un número' })
-  @Min(1, { message: 'La capacidad debe ser al menos 1' })
-  capacity: number;
-
   @IsOptional()
   @IsUrl({}, { message: 'La URL de la imagen no es válida' })
   image?: string;
+
+  @ValidateNested({ each: true })
+  @Type(() => TicketTypeItemDto)
+  @ArrayMinSize(1, { message: 'Debe haber al menos un tipo de entrada' })
+  ticketTypes: TicketTypeItemDto[];
 }

@@ -9,8 +9,7 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
-import { EventsService } from './events.service';
-import { Event } from '../entities/event.entity';
+import { EventsService, EventPublic } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -24,19 +23,19 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get('upcoming')
-  async getUpcomingEvents(): Promise<Event[]> {
+  async getUpcomingEvents(): Promise<EventPublic[]> {
     return this.eventsService.getUpcomingEvents();
   }
 
   @Get('my-events')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.SELLER, UserType.ADMIN)
-  async getMyEvents(@CurrentUser() user: User): Promise<Event[]> {
+  async getMyEvents(@CurrentUser() user: User): Promise<EventPublic[]> {
     return this.eventsService.getMyEvents(user.id);
   }
 
   @Get(':id')
-  async getEventById(@Param('id', ParseIntPipe) id: number): Promise<Event> {
+  async getEventById(@Param('id', ParseIntPipe) id: number): Promise<EventPublic> {
     return this.eventsService.getEventById(id);
   }
 
@@ -46,7 +45,7 @@ export class EventsController {
   async create(
     @Body() dto: CreateEventDto,
     @CurrentUser() user: User,
-  ): Promise<Event> {
+  ): Promise<EventPublic> {
     return this.eventsService.create(dto, user);
   }
 
@@ -57,7 +56,7 @@ export class EventsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEventDto,
     @CurrentUser() user: User,
-  ): Promise<Event> {
+  ): Promise<EventPublic> {
     return this.eventsService.update(id, dto, user.id);
   }
 
