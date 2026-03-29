@@ -1,53 +1,25 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as dns from 'dns/promises';
-import * as net from 'net';
 import * as nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { Ticket } from '../entities/ticket.entity';
 import { Event } from '../entities/event.entity';
 
 @Injectable()
-export class EmailService implements OnModuleInit {
-  private transporter!: nodemailer.Transporter;
+export class EmailService {
+  private transporter: nodemailer.Transporter;
 
-  constructor(private configService: ConfigService) {}
-
-  /**
-   * Nodemailer 8 mezcla registros A+AAAA y elige IP al azar; en Railway IPv6 suele ser ENETUNREACH.
-   * Resolviendo solo IPv4 y conectando a esa IP + servername TLS para el certificado del host lógico.
-   */
-  async onModuleInit() {
-    const logicalHost = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
-    const port = Number(this.configService.get<number>('SMTP_PORT', 587)) || 587;
-    const secure =
-      this.configService.get<string>('SMTP_SECURE') === 'true' || (!this.configService.get('SMTP_SECURE') && port === 465);
-
-    let connectHost = logicalHost;
-    let tlsForIp: SMTPTransport.Options['tls'];
-
-    if (!net.isIP(logicalHost)) {
-      try {
-        const { address } = await dns.lookup(logicalHost, { family: 4 });
-        connectHost = address;
-        tlsForIp = { servername: logicalHost };
-      } catch (e) {
-        console.warn(
-          `SMTP: no se pudo resolver ${logicalHost} a IPv4; se usa el hostname (puede fallar en redes sin IPv6):`,
-          e,
-        );
-      }
-    }
-
-    const smtp: SMTPTransport.Options = {
-      host: connectHost,
-      port,
-      secure,
+  constructor(private configService: ConfigService) {
+    const smtp: SMTPTransport.Options & { family?: number } = {
+      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
+      port: this.configService.get<number>('SMTP_PORT', 587),
+      secure: false,
+      // IPv4: en Railway (y similares) la resolución AAAA de smtp.gmail.com da ENETUNREACH al conectar por IPv6.
+      family: 4,
       auth: {
         user: this.configService.get<string>('SMTP_USER', ''),
         pass: this.configService.get<string>('SMTP_PASS', ''),
       },
-      ...(tlsForIp ? { tls: tlsForIp } : {}),
     };
     this.transporter = nodemailer.createTransport(smtp);
   }
