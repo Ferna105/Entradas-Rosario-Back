@@ -4,24 +4,33 @@ import * as dns from 'dns/promises';
 import * as net from 'net';
 import * as nodemailer from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import { Resend } from 'resend';
 import { Ticket } from '../entities/ticket.entity';
 import { Event } from '../entities/event.entity';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
-  private transporter!: nodemailer.Transporter;
+  private resend: Resend | null = null;
+  private transporter: nodemailer.Transporter | null = null;
 
   constructor(private configService: ConfigService) {}
 
-  /**
-   * Nodemailer 8 mezcla registros A+AAAA y elige IP al azar; en Railway IPv6 suele ser ENETUNREACH.
-   * Resolviendo solo IPv4 y conectando a esa IP + servername TLS para el certificado del host lógico.
-   */
   async onModuleInit() {
-    const logicalHost = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
-    const port = Number(this.configService.get<number>('SMTP_PORT', 587)) || 587;
+    const apiKey = this.configService.get<string>('RESEND_API_KEY')?.trim();
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      return;
+    }
+
+    const logicalHost = this.configService.get<string>(
+      'SMTP_HOST',
+      'smtp.gmail.com',
+    );
+    const port =
+      Number(this.configService.get<number>('SMTP_PORT', 587)) || 587;
     const secure =
-      this.configService.get<string>('SMTP_SECURE') === 'true' || (!this.configService.get('SMTP_SECURE') && port === 465);
+      this.configService.get<string>('SMTP_SECURE') === 'true' ||
+      (!this.configService.get('SMTP_SECURE') && port === 465);
 
     let connectHost = logicalHost;
     let tlsForIp: SMTPTransport.Options['tls'];
@@ -52,16 +61,37 @@ export class EmailService implements OnModuleInit {
     this.transporter = nodemailer.createTransport(smtp);
   }
 
+  /** Con Resend: RESEND_FROM obligatorio (dominio verificado). Con SMTP: SMTP_FROM / SMTP_USER. */
+  private resolveFromHeader(): string | null {
+    if (this.resend) {
+      const f = this.configService.get<string>('RESEND_FROM')?.trim();
+      if (!f) {
+        console.warn(
+          'RESEND_API_KEY está definido pero falta RESEND_FROM (ej. Entradas Rosario <entradas@tudominio.com>)',
+        );
+        return null;
+      }
+      return f.includes('<') ? f : `Entradas Rosario <${f}>`;
+    }
+    const fromEmail = this.configService.get<string>(
+      'SMTP_FROM',
+      this.configService.get<string>('SMTP_USER', ''),
+    );
+    if (!fromEmail) return null;
+    return `Entradas Rosario <${fromEmail}>`;
+  }
+
   async sendTicketEmail(
     buyerEmail: string,
     buyerName: string,
     event: Event,
     tickets: Ticket[],
   ): Promise<void> {
-    const fromEmail = this.configService.get<string>('SMTP_FROM', this.configService.get<string>('SMTP_USER', ''));
-
-    if (!fromEmail) {
-      console.warn('SMTP no configurado, tickets generados pero email no enviado');
+    const fromHeader = this.resolveFromHeader();
+    if (!fromHeader) {
+      console.warn(
+        'Email no configurado (RESEND_API_KEY + RESEND_FROM o SMTP_*), tickets generados pero email no enviado',
+      );
       return;
     }
 
@@ -128,25 +158,59 @@ export class EmailService implements OnModuleInit {
     </body>
     </html>`;
 
-    const attachments = tickets.map((ticket) => {
-      const base64Data = ticket.qr_code?.replace(/^data:image\/png;base64,/, '') || '';
+    const qrAttachments = tickets.map((ticket) => {
+      const base64Data =
+        ticket.qr_code?.replace(/^data:image\/png;base64,/, '') || '';
       return {
         filename: `qr_entrada_${ticket.id}.png`,
         content: Buffer.from(base64Data, 'base64'),
-        cid: `qr_${ticket.id}`,
+        contentType: 'image/png' as const,
+        contentId: `qr_${ticket.id}`,
       };
     });
 
     try {
+      if (this.resend) {
+        const { error } = await this.resend.emails.send({
+          from: fromHeader,
+          to: buyerEmail,
+          subject: `🎶 Tu entrada para ${event.name}`,
+          html,
+          attachments: qrAttachments,
+        });
+        if (error) {
+          console.error(
+            `Error enviando email (Resend) a ${buyerEmail}:`,
+            error,
+          );
+          return;
+        }
+        console.log(
+          `Email enviado a ${buyerEmail} con ${tickets.length} entrada(s) (Resend)`,
+        );
+        return;
+      }
+
+      if (!this.transporter) {
+        console.warn('Sin Resend ni SMTP configurado, email no enviado');
+        return;
+      }
+
       await this.transporter.sendMail({
-        from: `"Entradas Rosario" <${fromEmail}>`,
+        from: fromHeader,
         to: buyerEmail,
         subject: `🎶 Tu entrada para ${event.name}`,
         html,
-        attachments,
+        attachments: qrAttachments.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          cid: a.contentId,
+        })),
       });
 
-      console.log(`Email enviado a ${buyerEmail} con ${tickets.length} entrada(s)`);
+      console.log(
+        `Email enviado a ${buyerEmail} con ${tickets.length} entrada(s) (SMTP)`,
+      );
     } catch (error) {
       console.error(`Error enviando email a ${buyerEmail}:`, error);
     }
