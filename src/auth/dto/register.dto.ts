@@ -12,8 +12,8 @@ export class RegisterDto {
   password: string;
 
   @IsOptional()
-  @IsEnum([UserType.BUYER, UserType.SELLER, UserType.SCANNER], {
-    message: 'El tipo debe ser buyer, seller o scanner',
+  @IsEnum([UserType.BUYER, UserType.SELLER], {
+    message: 'El tipo debe ser buyer o seller',
   })
   type?: UserType;
 }

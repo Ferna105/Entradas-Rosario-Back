@@ -20,6 +20,18 @@ export class EmailService {
     });
   }
 
+  /** Primera URL de BASE_URL_FRONT (o CORS_ORIGINS), sin barra final; para enlaces en emails. */
+  private getFrontendBaseUrl(): string {
+    const raw =
+      this.configService.get<string>('BASE_URL_FRONT', '') ||
+      this.configService.get<string>('CORS_ORIGINS', '');
+    const first = raw
+      .split(',')
+      .map((s) => s.trim().replace(/\/+$/, ''))
+      .find(Boolean);
+    return first ?? '';
+  }
+
   async sendTicketEmail(
     buyerEmail: string,
     buyerName: string,
@@ -117,6 +129,70 @@ export class EmailService {
       console.log(`Email enviado a ${buyerEmail} con ${tickets.length} entrada(s)`);
     } catch (error) {
       console.error(`Error enviando email a ${buyerEmail}:`, error);
+    }
+  }
+
+  async sendScannerInvitationEmail(
+    toEmail: string,
+    eventName: string,
+    organizerName: string,
+    rawToken: string,
+  ): Promise<void> {
+    const fromEmail = this.configService.get<string>(
+      'SMTP_FROM',
+      this.configService.get<string>('SMTP_USER', ''),
+    );
+
+    const frontendUrl = this.getFrontendBaseUrl();
+    const acceptPath = `/escaneador/aceptar?token=${encodeURIComponent(rawToken)}`;
+    const link = frontendUrl ? `${frontendUrl}${acceptPath}` : acceptPath;
+
+    if (!fromEmail) {
+      console.warn('SMTP no configurado, invitación de escaneador no enviada por email');
+      return;
+    }
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 32px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 32px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Entradas Rosario</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0;">Invitación como escaneador</p>
+        </div>
+        <div style="padding: 32px;">
+          <p style="color: #334155; font-size: 16px;">Hola,</p>
+          <p style="color: #64748b; font-size: 15px;">
+            <strong>${organizerName}</strong> te invitó a escanear entradas QR en el evento:
+          </p>
+          <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #6366f1;">
+            <h2 style="color: #1e293b; margin: 0; font-size: 20px;">${eventName}</h2>
+          </div>
+          <p style="color: #64748b; font-size: 15px;">Para aceptar y crear tu cuenta de escaneador, hacé clic en el botón:</p>
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${link}" style="display: inline-block; background: #6366f1; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-weight: 600; font-size: 15px;">Aceptar invitación</a>
+          </div>
+          <p style="color: #94a3b8; font-size: 12px; word-break: break-all;">Si el botón no funciona, copiá este enlace en el navegador:<br/>${link}</p>
+        </div>
+        <div style="background: #f1f5f9; padding: 20px; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">Entradas Rosario</p>
+        </div>
+      </div>
+    </body>
+    </html>`;
+
+    try {
+      await this.transporter.sendMail({
+        from: `"Entradas Rosario" <${fromEmail}>`,
+        to: toEmail,
+        subject: `Invitación para escanear: ${eventName}`,
+        html,
+      });
+      console.log(`Invitación de escaneador enviada a ${toEmail}`);
+    } catch (error) {
+      console.error(`Error enviando invitación de escaneador a ${toEmail}:`, error);
     }
   }
 }
