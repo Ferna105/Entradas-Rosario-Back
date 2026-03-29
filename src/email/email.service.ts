@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { Ticket } from '../entities/ticket.entity';
 import { Event } from '../entities/event.entity';
 
@@ -10,18 +9,15 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
-    const smtp: SMTPTransport.Options & { family?: number } = {
+    this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
       port: this.configService.get<number>('SMTP_PORT', 587),
       secure: false,
-      // IPv4: en Railway (y similares) la resolución AAAA de smtp.gmail.com da ENETUNREACH al conectar por IPv6.
-      family: 4,
       auth: {
         user: this.configService.get<string>('SMTP_USER', ''),
         pass: this.configService.get<string>('SMTP_PASS', ''),
       },
-    };
-    this.transporter = nodemailer.createTransport(smtp);
+    });
   }
 
   async sendTicketEmail(
