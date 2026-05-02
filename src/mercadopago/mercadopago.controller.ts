@@ -31,7 +31,8 @@ export class MercadoPagoController {
       const url = this.mpService.getAuthUrl(user.id);
       return { url };
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error al armar URL de MercadoPago';
+      const msg =
+        e instanceof Error ? e.message : 'Error al armar URL de MercadoPago';
       throw new BadRequestException(msg);
     }
   }

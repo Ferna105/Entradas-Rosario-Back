@@ -27,7 +27,9 @@ export class MercadoPagoService {
 
   /** Debe coincidir byte a byte con la Redirect URL del panel de Mercado Pago. */
   getRedirectUri(): string {
-    const explicit = this.configService.get<string>('MP_REDIRECT_URI', '')?.trim();
+    const explicit = this.configService
+      .get<string>('MP_REDIRECT_URI', '')
+      ?.trim();
     if (explicit) {
       return explicit.replace(/\/+$/, '');
     }
@@ -48,7 +50,9 @@ export class MercadoPagoService {
         'MercadoPago OAuth: configurá MP_APP_ID y MP_REDIRECT_URI (o BASE_URL_BACK para derivar .../mp/callback)',
       );
     }
-    const state = Buffer.from(JSON.stringify({ sellerId })).toString('base64url');
+    const state = Buffer.from(JSON.stringify({ sellerId })).toString(
+      'base64url',
+    );
     return (
       `https://auth.mercadopago.com.ar/authorization?` +
       `client_id=${encodeURIComponent(this.appId)}` +
@@ -67,21 +71,27 @@ export class MercadoPagoService {
     }
   }
 
-  async handleOAuthCallback(code: string, state: string): Promise<{ sellerId: number }> {
+  async handleOAuthCallback(
+    code: string,
+    state: string,
+  ): Promise<{ sellerId: number }> {
     const { sellerId } = this.parseState(state);
     const redirectUri = this.getRedirectUri();
 
-    const tokenResponse = await fetch('https://api.mercadopago.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_secret: this.clientSecret,
-        client_id: this.appId,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri,
-      }),
-    });
+    const tokenResponse = await fetch(
+      'https://api.mercadopago.com/oauth/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_secret: this.clientSecret,
+          client_id: this.appId,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+        }),
+      },
+    );
 
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
@@ -105,16 +115,19 @@ export class MercadoPagoService {
       throw new Error('El usuario no tiene token de MercadoPago');
     }
 
-    const tokenResponse = await fetch('https://api.mercadopago.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_secret: this.clientSecret,
-        client_id: this.appId,
-        grant_type: 'refresh_token',
-        refresh_token: user.mp_refresh_token,
-      }),
-    });
+    const tokenResponse = await fetch(
+      'https://api.mercadopago.com/oauth/token',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_secret: this.clientSecret,
+          client_id: this.appId,
+          grant_type: 'refresh_token',
+          refresh_token: user.mp_refresh_token,
+        }),
+      },
+    );
 
     if (!tokenResponse.ok) {
       throw new Error('Error al refrescar token de MercadoPago');

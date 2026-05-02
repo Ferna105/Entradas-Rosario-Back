@@ -33,8 +33,11 @@ CREATE TABLE public.events (
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     image character varying,
     status character varying(20) NOT NULL DEFAULT 'published',
-    marketplace_fee_percent numeric(5,2) NOT NULL DEFAULT 10.00
+    marketplace_fee_percent numeric(5,2) NOT NULL DEFAULT 10.00,
+    category character varying(20) NOT NULL DEFAULT 'otros',
+    CONSTRAINT events_category_check CHECK (category IN ('musica', 'trap', 'rock', 'electronica', 'festival', 'otros'))
 );
+CREATE INDEX idx_events_category ON public.events(category);
 
 CREATE SEQUENCE public.events_id_seq
     AS integer START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;

@@ -86,7 +86,9 @@ export class ScannerService {
         where: { event_id: eventId, scanner_id: existingUser.id },
       });
       if (dup) {
-        throw new ConflictException('Ese escaneador ya está asignado a este evento');
+        throw new ConflictException(
+          'Ese escaneador ya está asignado a este evento',
+        );
       }
       const assignment = this.eventScannerRepository.create({
         event_id: eventId,
@@ -151,7 +153,8 @@ export class ScannerService {
 
     return {
       kind: 'invited' as const,
-      message: 'Se envió un correo con el enlace para completar el registro como escaneador',
+      message:
+        'Se envió un correo con el enlace para completar el registro como escaneador',
       invitationId: invitation.id,
     };
   }
@@ -167,7 +170,9 @@ export class ScannerService {
     });
 
     if (!invitation) {
-      throw new NotFoundException('Invitación no encontrada o el enlace expiró');
+      throw new NotFoundException(
+        'Invitación no encontrada o el enlace expiró',
+      );
     }
 
     if (invitation.status !== ScannerInvitationStatus.PENDING) {
@@ -198,7 +203,9 @@ export class ScannerService {
     });
 
     if (!invitation) {
-      throw new NotFoundException('Invitación no encontrada o el enlace expiró');
+      throw new NotFoundException(
+        'Invitación no encontrada o el enlace expiró',
+      );
     }
 
     if (invitation.status !== ScannerInvitationStatus.PENDING) {
@@ -266,10 +273,16 @@ export class ScannerService {
       throw new NotFoundException('Invitación no encontrada');
     }
 
-    await this.assertSellerOwnsEvent(invitation.event_id, sellerId, requesterType);
+    await this.assertSellerOwnsEvent(
+      invitation.event_id,
+      sellerId,
+      requesterType,
+    );
 
     if (invitation.status !== ScannerInvitationStatus.PENDING) {
-      throw new BadRequestException('Solo se pueden reenviar invitaciones pendientes');
+      throw new BadRequestException(
+        'Solo se pueden reenviar invitaciones pendientes',
+      );
     }
 
     const rawToken = randomBytes(32).toString('hex');
@@ -366,7 +379,9 @@ export class ScannerService {
     });
 
     if (!isAssigned) {
-      throw new ForbiddenException('No tenés permiso para escanear en este evento');
+      throw new ForbiddenException(
+        'No tenés permiso para escanear en este evento',
+      );
     }
 
     const ticket = await this.ticketsService.getTicketByQrData(qrData);

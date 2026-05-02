@@ -18,6 +18,15 @@ export enum EventStatus {
   FINISHED = 'finished',
 }
 
+export enum EventCategory {
+  MUSICA = 'musica',
+  TRAP = 'trap',
+  ROCK = 'rock',
+  ELECTRONICA = 'electronica',
+  FESTIVAL = 'festival',
+  OTROS = 'otros',
+}
+
 @Entity('events')
 export class Event {
   @PrimaryGeneratedColumn()
@@ -59,6 +68,13 @@ export class Event {
     default: 10.0,
   })
   marketplace_fee_percent: number;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: EventCategory.OTROS,
+  })
+  category: EventCategory;
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

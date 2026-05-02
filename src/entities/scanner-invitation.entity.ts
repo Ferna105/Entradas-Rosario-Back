@@ -35,7 +35,11 @@ export class ScannerInvitation {
   @Column({ type: 'varchar', length: 64 })
   token_hash: string;
 
-  @Column({ type: 'varchar', length: 20, default: ScannerInvitationStatus.PENDING })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: ScannerInvitationStatus.PENDING,
+  })
   status: ScannerInvitationStatus;
 
   @Column({ type: 'timestamp' })

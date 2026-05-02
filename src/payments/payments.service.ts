@@ -76,7 +76,9 @@ export class PaymentsService {
       }
 
       if (ticketType.event.status !== EventStatus.PUBLISHED) {
-        throw new BadRequestException('El evento no está disponible para la venta');
+        throw new BadRequestException(
+          'El evento no está disponible para la venta',
+        );
       }
 
       const soldRaw = await manager
@@ -265,9 +267,8 @@ export class PaymentsService {
         return;
       }
 
-      const tickets = await this.ticketsService.generateTicketsForPurchase(
-        fullPurchase,
-      );
+      const tickets =
+        await this.ticketsService.generateTicketsForPurchase(fullPurchase);
 
       console.log(
         `${tickets.length} ticket(s) generados para purchase ${purchase.id}`,

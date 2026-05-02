@@ -99,7 +99,11 @@ export class TicketsService {
     ticket.scanned_by = scannerId;
     await this.ticketRepository.save(ticket);
 
-    return { valid: true, message: 'Entrada válida - Acceso permitido', ticket };
+    return {
+      valid: true,
+      message: 'Entrada válida - Acceso permitido',
+      ticket,
+    };
   }
 
   async getTicketsByPurchase(purchaseId: number): Promise<Ticket[]> {

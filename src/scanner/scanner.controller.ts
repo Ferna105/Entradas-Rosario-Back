@@ -29,7 +29,11 @@ export class ScannerController {
 
   @Post('invitations/accept')
   async acceptInvitation(@Body() dto: AcceptScannerInvitationDto) {
-    return this.scannerService.acceptInvitation(dto.token, dto.name, dto.password);
+    return this.scannerService.acceptInvitation(
+      dto.token,
+      dto.name,
+      dto.password,
+    );
   }
 
   @Post('scan')
@@ -121,10 +125,6 @@ export class ScannerController {
     @CurrentUser() user: User,
     @Param('eventId', ParseIntPipe) eventId: number,
   ) {
-    return this.scannerService.getScannersByEvent(
-      eventId,
-      user.id,
-      user.type,
-    );
+    return this.scannerService.getScannersByEvent(eventId, user.id, user.type);
   }
 }

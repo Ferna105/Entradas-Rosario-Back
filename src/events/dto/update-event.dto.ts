@@ -1,16 +1,14 @@
 import {
   IsOptional,
-  IsNumber,
   IsDateString,
   IsUrl,
   IsEnum,
-  Min,
   MaxLength,
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EventStatus } from '../../entities/event.entity';
+import { EventCategory, EventStatus } from '../../entities/event.entity';
 import { TicketTypeItemDto } from './ticket-type-item.dto';
 
 export class UpdateEventDto {
@@ -36,6 +34,10 @@ export class UpdateEventDto {
   @IsOptional()
   @IsEnum(EventStatus, { message: 'Estado inválido' })
   status?: EventStatus;
+
+  @IsOptional()
+  @IsEnum(EventCategory, { message: 'Categoría inválida' })
+  category?: EventCategory;
 
   @IsOptional()
   @ValidateNested({ each: true })

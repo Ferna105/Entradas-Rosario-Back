@@ -2,12 +2,14 @@ import {
   IsNotEmpty,
   IsOptional,
   IsDateString,
+  IsEnum,
   IsUrl,
   MaxLength,
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { EventCategory } from '../../entities/event.entity';
 import { TicketTypeItemDto } from './ticket-type-item.dto';
 
 export class CreateEventDto {
@@ -28,6 +30,10 @@ export class CreateEventDto {
   @IsOptional()
   @IsUrl({}, { message: 'La URL de la imagen no es válida' })
   image?: string;
+
+  @IsOptional()
+  @IsEnum(EventCategory, { message: 'Categoría inválida' })
+  category?: EventCategory;
 
   @ValidateNested({ each: true })
   @Type(() => TicketTypeItemDto)

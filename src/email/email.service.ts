@@ -39,10 +39,15 @@ export class EmailService {
     tickets: Ticket[],
     ticketTypeName?: string,
   ): Promise<void> {
-    const fromEmail = this.configService.get<string>('SMTP_FROM', this.configService.get<string>('SMTP_USER', ''));
+    const fromEmail = this.configService.get<string>(
+      'SMTP_FROM',
+      this.configService.get<string>('SMTP_USER', ''),
+    );
 
     if (!fromEmail) {
-      console.warn('SMTP no configurado, tickets generados pero email no enviado');
+      console.warn(
+        'SMTP no configurado, tickets generados pero email no enviado',
+      );
       return;
     }
 
@@ -111,7 +116,8 @@ export class EmailService {
     </html>`;
 
     const attachments = tickets.map((ticket) => {
-      const base64Data = ticket.qr_code?.replace(/^data:image\/png;base64,/, '') || '';
+      const base64Data =
+        ticket.qr_code?.replace(/^data:image\/png;base64,/, '') || '';
       return {
         filename: `qr_entrada_${ticket.id}.png`,
         content: Buffer.from(base64Data, 'base64'),
@@ -128,7 +134,9 @@ export class EmailService {
         attachments,
       });
 
-      console.log(`Email enviado a ${buyerEmail} con ${tickets.length} entrada(s)`);
+      console.log(
+        `Email enviado a ${buyerEmail} con ${tickets.length} entrada(s)`,
+      );
     } catch (error) {
       console.error(`Error enviando email a ${buyerEmail}:`, error);
     }
@@ -150,7 +158,9 @@ export class EmailService {
     const link = frontendUrl ? `${frontendUrl}${acceptPath}` : acceptPath;
 
     if (!fromEmail) {
-      console.warn('SMTP no configurado, invitación de escaneador no enviada por email');
+      console.warn(
+        'SMTP no configurado, invitación de escaneador no enviada por email',
+      );
       return;
     }
 
@@ -194,7 +204,10 @@ export class EmailService {
       });
       console.log(`Invitación de escaneador enviada a ${toEmail}`);
     } catch (error) {
-      console.error(`Error enviando invitación de escaneador a ${toEmail}:`, error);
+      console.error(
+        `Error enviando invitación de escaneador a ${toEmail}:`,
+        error,
+      );
     }
   }
 
@@ -221,7 +234,10 @@ export class EmailService {
 
     const safeName = this.escapeHtml(payload.name);
     const safeEmail = this.escapeHtml(payload.email);
-    const safeMessage = this.escapeHtml(payload.message).replace(/\n/g, '<br/>');
+    const safeMessage = this.escapeHtml(payload.message).replace(
+      /\n/g,
+      '<br/>',
+    );
     const safeSubject = payload.subject
       ? this.escapeHtml(payload.subject)
       : 'Consulta desde el sitio web';

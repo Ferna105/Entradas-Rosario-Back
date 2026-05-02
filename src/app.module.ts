@@ -10,6 +10,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { EmailModule } from './email/email.module';
 import { ScannerModule } from './scanner/scanner.module';
 import { ContactModule } from './contact/contact.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -28,9 +29,10 @@ import { ContactModule } from './contact/contact.module';
         database: config.get<string>('DB_NAME', ''),
         autoLoadEntities: true,
         synchronize: false,
-        ssl: config.get<string>('DB_SSL') === 'true'
-          ? { rejectUnauthorized: false }
-          : false,
+        ssl:
+          config.get<string>('DB_SSL') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
       }),
     }),
     AuthModule,
@@ -42,6 +44,7 @@ import { ContactModule } from './contact/contact.module';
     EmailModule,
     ScannerModule,
     ContactModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

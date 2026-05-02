@@ -5,8 +5,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository, MoreThanOrEqual } from 'typeorm';
-import { Event, EventStatus } from '../entities/event.entity';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { Event, EventCategory, EventStatus } from '../entities/event.entity';
 import { TicketType } from '../entities/ticket-type.entity';
 import { Purchase } from '../entities/purchase.entity';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -35,10 +35,19 @@ export interface EventPublic {
   event_date: Date;
   image: string | null;
   status: EventStatus;
+  category: EventCategory;
   marketplace_fee_percent: number;
   created_at: Date;
   minPrice: number;
   ticketTypes: TicketTypePublic[];
+}
+
+export interface UpcomingEventsFilter {
+  category?: EventCategory;
+  q?: string;
+  location?: string;
+  from?: Date;
+  to?: Date;
 }
 
 @Injectable()
@@ -133,6 +142,7 @@ export class EventsService {
       event_date: event.event_date,
       image: event.image,
       status: event.status,
+      category: event.category,
       marketplace_fee_percent: Number(event.marketplace_fee_percent),
       created_at: event.created_at,
       minPrice,
@@ -151,16 +161,36 @@ export class EventsService {
     return event;
   }
 
-  async getUpcomingEvents(): Promise<EventPublic[]> {
+  async getUpcomingEvents(
+    filter: UpcomingEventsFilter = {},
+  ): Promise<EventPublic[]> {
     const now = new Date();
-    const events = await this.eventRepository.find({
-      where: {
-        event_date: MoreThanOrEqual(now),
-        status: EventStatus.PUBLISHED,
-      },
-      relations: ['ticketTypes'],
-      order: { event_date: 'ASC' },
-    });
+    const fromBound = filter.from && filter.from > now ? filter.from : now;
+
+    const qb = this.eventRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.ticketTypes', 'tt')
+      .where('e.status = :status', { status: EventStatus.PUBLISHED })
+      .andWhere('e.event_date >= :from', { from: fromBound });
+
+    if (filter.to) {
+      qb.andWhere('e.event_date <= :to', { to: filter.to });
+    }
+    if (filter.category) {
+      qb.andWhere('e.category = :category', { category: filter.category });
+    }
+    if (filter.location) {
+      qb.andWhere('e.location ILIKE :location', {
+        location: `%${filter.location}%`,
+      });
+    }
+    if (filter.q) {
+      qb.andWhere('(e.name ILIKE :q OR e.location ILIKE :q)', {
+        q: `%${filter.q}%`,
+      });
+    }
+
+    const events = await qb.orderBy('e.event_date', 'ASC').getMany();
     const out: EventPublic[] = [];
     for (const e of events) {
       out.push(await this.toPublicEvent(e));
@@ -204,6 +234,7 @@ export class EventsService {
         location: dto.location,
         event_date: new Date(dto.event_date),
         image: dto.image,
+        category: dto.category ?? EventCategory.OTROS,
         seller_id: seller.id,
         status: EventStatus.PUBLISHED,
       });
@@ -245,13 +276,15 @@ export class EventsService {
       const ttRepo = manager.getRepository(TicketType);
 
       if (dto.name !== undefined) existingEvent.name = dto.name;
-      if (dto.description !== undefined) existingEvent.description = dto.description;
+      if (dto.description !== undefined)
+        existingEvent.description = dto.description;
       if (dto.location !== undefined) existingEvent.location = dto.location;
       if (dto.event_date !== undefined) {
         existingEvent.event_date = new Date(dto.event_date);
       }
       if (dto.image !== undefined) existingEvent.image = dto.image;
       if (dto.status !== undefined) existingEvent.status = dto.status;
+      if (dto.category !== undefined) existingEvent.category = dto.category;
 
       await eventRepo.save(existingEvent);
 
@@ -263,7 +296,9 @@ export class EventsService {
         });
         const existingById = new Map(existingTypes.map((t) => [t.id, t]));
         const incomingWithId = new Set(
-          dto.ticketTypes.filter((t) => t.id != null).map((t) => t.id as number),
+          dto.ticketTypes
+            .filter((t) => t.id != null)
+            .map((t) => t.id as number),
         );
 
         for (let i = 0; i < dto.ticketTypes.length; i++) {
@@ -319,7 +354,9 @@ export class EventsService {
     const event = await this.findEventEntityWithTypes(id);
 
     if (event.seller_id !== sellerId) {
-      throw new ForbiddenException('No tenés permisos para eliminar este evento');
+      throw new ForbiddenException(
+        'No tenés permisos para eliminar este evento',
+      );
     }
 
     event.status = EventStatus.CANCELLED;
