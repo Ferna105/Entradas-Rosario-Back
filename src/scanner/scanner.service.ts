@@ -19,6 +19,8 @@ import { TicketsService } from '../tickets/tickets.service';
 import { UsersService } from '../users/users.service';
 import { EventsService } from '../events/events.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../entities/notification.entity';
 
 const SALT_ROUNDS = 10;
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -49,6 +51,7 @@ export class ScannerService {
     private usersService: UsersService,
     private eventsService: EventsService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async assertSellerOwnsEvent(
@@ -229,6 +232,7 @@ export class ScannerService {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const eventName = invitation.event?.name;
 
+    let createdScannerName = '';
     await this.invitationRepository.manager.transaction(async (manager) => {
       const userRepo = manager.getRepository(User);
       const esRepo = manager.getRepository(EventScanner);
@@ -240,6 +244,7 @@ export class ScannerService {
         type: UserType.SCANNER,
       });
       const savedUser = await manager.save(user);
+      createdScannerName = savedUser.name;
 
       const link = esRepo.create({
         event_id: invitation.event_id,
@@ -252,6 +257,21 @@ export class ScannerService {
         accepted_at: new Date(),
       });
     });
+
+    const sellerId = invitation.invited_by_user_id;
+    if (sellerId && eventName) {
+      await this.notificationsService.create({
+        userId: sellerId,
+        type: NotificationType.SCANNER_ACCEPTED,
+        title: 'Nuevo escaneador',
+        message: `${createdScannerName} aceptó tu invitación para "${eventName}".`,
+        data: {
+          event_id: invitation.event_id,
+          event_name: eventName,
+          scanner_name: createdScannerName,
+        },
+      });
+    }
 
     return {
       message: 'Cuenta de escaneador creada y vinculada al evento',

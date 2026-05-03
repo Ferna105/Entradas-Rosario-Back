@@ -6,6 +6,7 @@ import { PaymentsService } from './payments.service';
 import { UsersModule } from '../users/users.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Purchase } from '../entities/purchase.entity';
 
 @Module({
@@ -14,6 +15,7 @@ import { Purchase } from '../entities/purchase.entity';
     UsersModule,
     TicketsModule,
     EmailModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([Purchase]),
   ],
   controllers: [PaymentsController],

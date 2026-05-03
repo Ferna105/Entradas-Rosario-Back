@@ -13,6 +13,7 @@ import { ContactModule } from './contact/contact.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { AttendeesModule } from './attendees/attendees.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AttendeesModule } from './attendees/attendees.module';
     DashboardModule,
     FavoritesModule,
     AttendeesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

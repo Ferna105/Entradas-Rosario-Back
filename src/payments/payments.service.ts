@@ -10,9 +10,11 @@ import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { UsersService } from '../users/users.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Purchase } from '../entities/purchase.entity';
 import { TicketType } from '../entities/ticket-type.entity';
 import { Event, EventStatus } from '../entities/event.entity';
+import { NotificationType } from '../entities/notification.entity';
 
 @Injectable()
 export class PaymentsService {
@@ -24,6 +26,7 @@ export class PaymentsService {
     private usersService: UsersService,
     private ticketsService: TicketsService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
     @InjectRepository(Purchase)
     private purchaseRepository: Repository<Purchase>,
     private dataSource: DataSource,
@@ -247,6 +250,9 @@ export class PaymentsService {
 
       if (newStatus === 'approved' && previousStatus !== 'approved') {
         await this.generateTicketsAndNotify(purchase);
+        await this.notifyPurchaseApproved(purchase);
+      } else if (newStatus === 'rejected' && previousStatus !== 'rejected') {
+        await this.notifyPurchaseRejected(purchase);
       }
 
       console.log(
@@ -304,6 +310,7 @@ export class PaymentsService {
     purchase.payment_status = 'approved';
     await this.purchaseRepository.save(purchase);
     await this.generateTicketsAndNotify(purchase);
+    await this.notifyPurchaseApproved(purchase);
 
     const updatedPurchase = await this.purchaseRepository.findOne({
       where: { id: purchaseId },
@@ -314,6 +321,90 @@ export class PaymentsService {
       message: `Pago simulado como aprobado, ${updatedPurchase?.tickets?.length || 0} ticket(s) generados`,
       purchase: updatedPurchase,
     };
+  }
+
+  private async notifyPurchaseApproved(purchase: Purchase): Promise<void> {
+    try {
+      const fullPurchase = await this.purchaseRepository.findOne({
+        where: { id: purchase.id },
+        relations: ['event'],
+      });
+      if (!fullPurchase?.event) return;
+
+      const eventName = fullPurchase.event.name;
+      const qty = fullPurchase.quantity;
+      const total = Number(fullPurchase.total_amount) || 0;
+
+      const buyer = fullPurchase.buyer_email
+        ? await this.usersService.findByEmail(fullPurchase.buyer_email)
+        : null;
+      if (buyer) {
+        await this.notificationsService.create({
+          userId: buyer.id,
+          type: NotificationType.PURCHASE_APPROVED,
+          title: 'Tu compra fue confirmada',
+          message: `${qty} ${qty === 1 ? 'entrada' : 'entradas'} para "${eventName}". Te enviamos los QR por email.`,
+          data: {
+            purchase_id: fullPurchase.id,
+            event_id: fullPurchase.event_id,
+            event_name: eventName,
+            quantity: qty,
+          },
+        });
+      }
+
+      const sellerId = fullPurchase.event.seller_id;
+      if (sellerId) {
+        await this.notificationsService.create({
+          userId: sellerId,
+          type: NotificationType.NEW_SALE,
+          title: 'Vendiste entradas',
+          message: `${qty} ${qty === 1 ? 'entrada vendida' : 'entradas vendidas'} para "${eventName}" por $${total.toLocaleString('es-AR')}.`,
+          data: {
+            purchase_id: fullPurchase.id,
+            event_id: fullPurchase.event_id,
+            event_name: eventName,
+            quantity: qty,
+            total_amount: total,
+          },
+        });
+      }
+    } catch (error) {
+      console.error(`Error notificando compra aprobada ${purchase.id}:`, error);
+    }
+  }
+
+  private async notifyPurchaseRejected(purchase: Purchase): Promise<void> {
+    try {
+      const fullPurchase = await this.purchaseRepository.findOne({
+        where: { id: purchase.id },
+        relations: ['event'],
+      });
+      if (!fullPurchase?.event) return;
+      if (!fullPurchase.buyer_email) return;
+
+      const buyer = await this.usersService.findByEmail(
+        fullPurchase.buyer_email,
+      );
+      if (!buyer) return;
+
+      await this.notificationsService.create({
+        userId: buyer.id,
+        type: NotificationType.PURCHASE_REJECTED,
+        title: 'Tu pago no se pudo procesar',
+        message: `No pudimos confirmar tu compra de "${fullPurchase.event.name}". Intentá de nuevo o probá con otro medio de pago.`,
+        data: {
+          purchase_id: fullPurchase.id,
+          event_id: fullPurchase.event_id,
+          event_name: fullPurchase.event.name,
+        },
+      });
+    } catch (error) {
+      console.error(
+        `Error notificando compra rechazada ${purchase.id}:`,
+        error,
+      );
+    }
   }
 
   async getPurchaseById(id: number): Promise<Purchase> {

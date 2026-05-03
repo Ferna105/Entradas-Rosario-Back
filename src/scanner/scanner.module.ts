@@ -8,6 +8,7 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { UsersModule } from '../users/users.module';
 import { EventsModule } from '../events/events.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EmailModule } from '../email/email.module';
     UsersModule,
     EventsModule,
     EmailModule,
+    NotificationsModule,
   ],
   controllers: [ScannerController],
   providers: [ScannerService],
