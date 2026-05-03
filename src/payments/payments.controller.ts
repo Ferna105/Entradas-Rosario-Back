@@ -16,6 +16,7 @@ interface CreatePaymentPreferenceDto {
   buyerEmail: string;
   buyerName: string;
   quantity: number;
+  showInAttendees?: boolean;
 }
 
 @Controller('payments')

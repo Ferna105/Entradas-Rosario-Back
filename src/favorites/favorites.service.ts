@@ -32,7 +32,9 @@ export class FavoritesService {
   }
 
   async addFavorite(userId: number, eventId: number): Promise<void> {
-    const event = await this.eventRepository.findOne({ where: { id: eventId } });
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId },
+    });
     if (!event) {
       throw new NotFoundException('Evento no encontrado');
     }
@@ -48,6 +50,9 @@ export class FavoritesService {
   }
 
   async removeFavorite(userId: number, eventId: number): Promise<void> {
-    await this.favoriteRepository.delete({ user_id: userId, event_id: eventId });
+    await this.favoriteRepository.delete({
+      user_id: userId,
+      event_id: eventId,
+    });
   }
 }

@@ -37,6 +37,7 @@ export interface EventPublic {
   status: EventStatus;
   category: EventCategory;
   marketplace_fee_percent: number;
+  show_attendees: boolean;
   created_at: Date;
   minPrice: number;
   ticketTypes: TicketTypePublic[];
@@ -144,6 +145,7 @@ export class EventsService {
       status: event.status,
       category: event.category,
       marketplace_fee_percent: Number(event.marketplace_fee_percent),
+      show_attendees: event.show_attendees ?? false,
       created_at: event.created_at,
       minPrice,
       ticketTypes,
@@ -235,6 +237,7 @@ export class EventsService {
         event_date: new Date(dto.event_date),
         image: dto.image,
         category: dto.category ?? EventCategory.OTROS,
+        show_attendees: dto.show_attendees ?? false,
         seller_id: seller.id,
         status: EventStatus.PUBLISHED,
       });
@@ -285,6 +288,8 @@ export class EventsService {
       if (dto.image !== undefined) existingEvent.image = dto.image;
       if (dto.status !== undefined) existingEvent.status = dto.status;
       if (dto.category !== undefined) existingEvent.category = dto.category;
+      if (dto.show_attendees !== undefined)
+        existingEvent.show_attendees = dto.show_attendees;
 
       await eventRepo.save(existingEvent);
 

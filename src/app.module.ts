@@ -12,6 +12,7 @@ import { ScannerModule } from './scanner/scanner.module';
 import { ContactModule } from './contact/contact.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { AttendeesModule } from './attendees/attendees.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     ContactModule,
     DashboardModule,
     FavoritesModule,
+    AttendeesModule,
   ],
 })
 export class AppModule {}

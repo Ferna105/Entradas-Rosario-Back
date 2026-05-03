@@ -76,6 +76,9 @@ export class Event {
   })
   category: EventCategory;
 
+  @Column({ type: 'boolean', default: false })
+  show_attendees: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

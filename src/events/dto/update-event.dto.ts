@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsUrl,
   IsEnum,
+  IsBoolean,
   MaxLength,
   ValidateNested,
   ArrayMinSize,
@@ -38,6 +39,10 @@ export class UpdateEventDto {
   @IsOptional()
   @IsEnum(EventCategory, { message: 'Categoría inválida' })
   category?: EventCategory;
+
+  @IsOptional()
+  @IsBoolean()
+  show_attendees?: boolean;
 
   @IsOptional()
   @ValidateNested({ each: true })

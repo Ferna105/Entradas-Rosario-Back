@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsEnum,
   IsUrl,
+  IsBoolean,
   MaxLength,
   ValidateNested,
   ArrayMinSize,
@@ -34,6 +35,10 @@ export class CreateEventDto {
   @IsOptional()
   @IsEnum(EventCategory, { message: 'Categoría inválida' })
   category?: EventCategory;
+
+  @IsOptional()
+  @IsBoolean()
+  show_attendees?: boolean;
 
   @ValidateNested({ each: true })
   @Type(() => TicketTypeItemDto)

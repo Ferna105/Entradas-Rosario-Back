@@ -59,6 +59,9 @@ export class Purchase {
   @Column({ type: 'text', nullable: true })
   mp_preference_id: string;
 
+  @Column({ type: 'boolean', default: false })
+  show_in_attendees: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

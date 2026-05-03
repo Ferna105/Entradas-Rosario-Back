@@ -46,6 +46,7 @@ export class PaymentsService {
     buyerEmail: string;
     buyerName: string;
     quantity: number;
+    showInAttendees?: boolean;
   }) {
     const baseUrlFront = this.configService.get<string>('BASE_URL_FRONT');
     const baseUrlBack = this.configService.get<string>('BASE_URL_BACK');
@@ -107,6 +108,8 @@ export class PaymentsService {
         quantity: data.quantity,
         total_amount: totalAmount,
         payment_status: 'pending',
+        show_in_attendees:
+          ticketType.event.show_attendees && data.showInAttendees === true,
       });
       savedPurchase = await manager.getRepository(Purchase).save(purchase);
       event = ticketType.event;
