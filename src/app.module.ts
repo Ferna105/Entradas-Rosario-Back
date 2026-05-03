@@ -11,6 +11,7 @@ import { EmailModule } from './email/email.module';
 import { ScannerModule } from './scanner/scanner.module';
 import { ContactModule } from './contact/contact.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ScannerModule,
     ContactModule,
     DashboardModule,
+    FavoritesModule,
   ],
 })
 export class AppModule {}
